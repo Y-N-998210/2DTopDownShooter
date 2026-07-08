@@ -22,6 +22,27 @@ enum class Team { None, Blue, Red };
 enum class State { Idle, Evade, Retreat, Attack, Capture };
 // --- AIのrole ---
 enum class Role { Player, Assault, Defender, Support, Flanker};
+// --- 武器 ---
+enum class WeaponType { AR, SMG, SG, SR};
+
+// 武器パラメータ
+struct Weapon {
+	WeaponType type;
+	String name;
+	double range;
+	double fire_rate;
+	double damage;
+
+	static Weapon Create(WeaponType type) {
+		switch (type) {
+		case WeaponType::AR: return { type, U"AR", 400.0, 0.2, 12.0 };
+		case WeaponType::SMG: return { type, U"SMG", 250.0, 0.1, 8.0 };
+		case WeaponType::SG: return { type, U"SG", 150.0, 0.8, 35.0 };
+		case WeaponType::SR: return { type, U"SR", 700.0, 1.5, 60.0 };
+		default:			return { type, U"AR", 400.0, 0.2, 12.0 };
+		}
+	}
+};
 
 // --- ヘルパー関数: Stateの文字列変換 ---
 // デバッグ描画で状態名を表示するために使用
