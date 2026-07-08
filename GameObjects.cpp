@@ -99,10 +99,11 @@ bool has_line_of_sight(const Vec2& pos1, const Vec2& pos2, const Array<Obstacle>
 
 // --- Soldier ---
 // コンストラクタ
-Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), is_player(player) {
+Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), is_player(player), weapon(Weapon::Create(WeaponType::AR)) {
 	if (is_player) {
 		color = COLOR_PLAYER;
 		role = Role::Player;
+		weapon = Weapon::Create(WeaponType::AR);
 	}
 	else {
 		color = (team == Team::Blue) ? COLOR_ALLY : COLOR_ENEMY;
@@ -113,6 +114,17 @@ Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), 
 		else if (r == 1) role = Role::Defender;
 		else if (r == 2) role = Role::Support;
 		else role = Role::Flanker;
+
+		// 役割ごとの武器
+		if (role == Role::Assault) {
+			weapon = Weapon::Create(RandomBool() ? WeaponType::AR : WeaponType::SMG);
+		} else if (role == Role::Flanker) {
+			weapon = Weapon::Create(RandomBool() ? WeaponType::SMG : WeaponType::SG); 
+		} else if (role == Role::Support) {
+			weapon = Weapon::Create(WeaponType::SR); 
+		} else {
+			weapon = Weapon::Create(WeaponType::AR);
+		}
 
 		// Flankerの周り方向決定
 		flank_sign = RandomBool() ? 1.0 : -1.0;
@@ -190,7 +202,7 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 	// --- 状態遷移 ---
 	if (incoming_bullet) state = State::Evade;
 	else if (health < 30.0 && nearest_target && min_dist < 300.0) state = State::Retreat;
-	else if (nearest_target && min_dist < 450.0) state = State::Attack;
+	else if (nearest_target && min_dist < weapon.range) state = State::Attack;
 	else if (nearest_cp) state = State::Capture;
 	else state = State::Idle;
 
@@ -207,7 +219,7 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 		// 射撃
 		shoot_cooldown -= dt;
 		if (shoot_cooldown <= 0.0) {
-			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team); shoot_cooldown = 0.75;
+			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team); shoot_cooldown = weapon.fire_rate;
 		}
 
 		// 移動方法
@@ -219,10 +231,11 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 			move_with_collision(move_dir.normalize().x * 140.0 * dt, move_dir.normalize().y * 140.0 * dt, obstacles);
 		}
 		else {
-			if (min_dist > 250.0) {
+			double ideal_dist = weapon.range * 0.7;
+			if (min_dist > ideal_dist + 40.0) {
 				move_with_collision(dir_vec.normalize().x * 120.0 * dt, dir_vec.normalize().y * 120.0 * dt, obstacles);
 			}
-			else if (min_dist < 150.0) {
+			else if (min_dist < ideal_dist - 40.0) {
 				move_with_collision(-dir_vec.normalize().x * 120.0 * dt, -dir_vec.normalize().y * 120.0 * dt, obstacles);
 			}
 		}
@@ -284,7 +297,7 @@ void Soldier::draw(const Vec2& camera, const Font& font) const {
 	// 兵士
 	Circle(draw_pos, 20).draw(color);
 	// ステート：兵科
-	font(U"{}:{}"_fmt(StateToString(state), RoleToString(role))).draw(12, draw_pos.x - 35, draw_pos.y + 25, Palette::White);
+	font(U"{}:{} [{}]"_fmt(StateToString(state), RoleToString(role), weapon.name)).draw(11, draw_pos.x - 45, draw_pos.y + 25, Palette::White);
 	// HPバー
 	RectF(draw_pos.x - 20, draw_pos.y - 30, 40, 5).draw(Palette::Red);
 	RectF(draw_pos.x - 20, draw_pos.y - 30, 40 * (Max(0.0, health) / 100.0), 5).draw(Palette::Green);

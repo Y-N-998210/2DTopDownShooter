@@ -44,6 +44,7 @@ struct Soldier {
 	Vec2 pos;
 	Team team;
 	Role role;
+	Weapon weapon;
 	double flank_sign = 1.0;	// 左:-1, 右:1
 	double health = 100.0;
 	double shoot_cooldown = 0.0;
