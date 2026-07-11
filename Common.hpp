@@ -1,6 +1,7 @@
 ﻿#pragma once
 # include <Siv3D.hpp>
 
+// 自分のを書く
 // --- 画面・マップ・システム設定 ---
 constexpr int32 SCREEN_WIDTH = 1000;
 constexpr int32 SCREEN_HEIGHT = 700;
