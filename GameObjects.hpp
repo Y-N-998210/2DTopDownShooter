@@ -54,6 +54,7 @@ struct Soldier {
 	double respawn_timer = 0.0;
 	Color color;
 
+	// コンストラクタ
 	Soldier(double x, double y, Team t, bool player = false);
 
 	// 障害物、マップは使途の当たり判定

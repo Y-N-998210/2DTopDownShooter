@@ -98,11 +98,11 @@ void Main() {
 		const double dt = Scene::DeltaTime();
 		Vec2 camera(Clamp<double>(player.pos.x - SCREEN_WIDTH / 2.0, 0.0, MAP_WIDTH - SCREEN_WIDTH), Clamp<double>(player.pos.y - SCREEN_HEIGHT / 2.0, 0.0, MAP_HEIGHT - SCREEN_HEIGHT));
 
-		// プレイヤー射撃
-		if (!player.dead && !game_over && MouseL.down()) {
-			Vec2 world_mouse = Cursor::Pos() + camera;
-			bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(world_mouse.y - player.pos.y, world_mouse.x - player.pos.x), Team::Blue);
-		}
+		// プレイヤー射撃(元)
+		//if (!player.dead && !game_over && MouseL.down()) {
+		//	Vec2 world_mouse = Cursor::Pos() + camera;
+		//	bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(world_mouse.y - player.pos.y, world_mouse.x - player.pos.x), Team::Blue);
+		//}
 		// リスタート
 		if (game_over && KeySpace.down()) {
 			reset_game(obstacles, capture_points, player, allies, enemies, bullets, tickets);
@@ -150,6 +150,30 @@ void Main() {
 			if (KeyS.pressed()) dy += 240.0 * dt;
 			// 障害物、マップ端の衝突判定
 			if (dx != 0 || dy != 0) player.move_with_collision(dx, dy, obstacles);	 
+		}
+
+		// プレイヤーの射撃クールダウン更新
+		if (player.shoot_cooldown > 0.0) {
+			player.shoot_cooldown -= dt;
+		}
+
+		// セミ・フル切り替え
+		bool wants_to_shoot = false;
+		// フル
+		if (player.weapon.type == WeaponType::AR || player.weapon.type == WeaponType::SMG) {
+			wants_to_shoot = MouseL.pressed();
+		}
+		// セミ
+		else {
+			wants_to_shoot = MouseL.down();
+		}
+
+		// 射撃する
+		if (!player.dead && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0) {
+			Vec2 target_pos = camera + Cursor::Pos();
+			Vec2 dir_vec = target_pos - player.pos;
+			bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(dir_vec.y, dir_vec.x), Team::Blue);
+			player.shoot_cooldown = player.weapon.fire_rate;
 		}
 
 	// 4. 拠点の更新

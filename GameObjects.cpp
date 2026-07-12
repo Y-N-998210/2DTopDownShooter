@@ -108,7 +108,7 @@ Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), 
 	if (is_player) {
 		color = COLOR_PLAYER;
 		role = Role::Player;
-		weapon = Weapon::Create(WeaponType::AR);
+		weapon = Weapon::Create(WeaponType::SMG);
 	}
 	else {
 		color = (team == Team::Blue) ? COLOR_ALLY : COLOR_ENEMY;
