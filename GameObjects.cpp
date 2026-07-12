@@ -54,16 +54,18 @@ void CapturePoint::draw(const Vec2& camera, const Font& font) const {
 }
 
 // --- Bullet ---
-Bullet::Bullet(double x, double y, double angle, Team t, double dmg) : pos(x, y), team(t) {
+Bullet::Bullet(double x, double y, double angle, Team t) : pos(x, y), team(t) {
 	double speed = 720.0;
-	// SRの弾速
-	if (dmg > 50.0) speed = 1200.0;
 
 	// 角度(ラジアン)から方向ベクトルを作成し、速度を決定
 	velocity = Vec2(std::cos(angle), std::sin(angle)) * speed;
 }
-void Bullet::update(double dt) { pos += velocity * dt; }
-void Bullet::draw(const Vec2& camera) const { Circle(pos - camera, 3).draw(Palette::Yellow); }
+void Bullet::update(double dt) {
+	pos += velocity * dt;
+}
+void Bullet::draw(const Vec2& camera) const {
+	Circle(pos - camera, 3).draw(Palette::Yellow);
+}
 
 // --- 視界判定 ---
 // AABB(軸平行境界ボックス)と線分の交差判定(スラブ側判定測の一種)を利用し、2転換に壁が割り込んでいるかを計算
@@ -173,7 +175,8 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 	if (team == Team::Red) targets.push_back(player);
 
 	// 視線(Line of Sight)が通り、かつ最も近い敵を探す
-	Soldier* nearest_target = nullptr; double min_dist = 9999.0;
+	Soldier* nearest_target = nullptr;
+	double min_dist = 9999.0;
 	for (auto t : targets) {
 		if (t->dead) continue;
 		double d = pos.distanceFrom(t->pos);
@@ -193,11 +196,13 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 
 	// 弾の危機察知
 	// 【危険察知】自分に向かって飛んできている近くの敵の弾丸がないかチェック
-	bool incoming_bullet = false; Vec2 evade_vec(0, 0);
+	bool incoming_bullet = false;
+	Vec2 evade_vec(0, 0);
 	for (const auto& b : bullets) {
 		if (b.team != team && pos.distanceFrom(b.pos) < 150.0) {
 			if (b.velocity.normalized().dot((pos - b.pos).normalized()) > 0.8) {
-				incoming_bullet = true; evade_vec += Vec2(-b.velocity.y, b.velocity.x).normalized();
+				incoming_bullet = true;
+				evade_vec += Vec2(-b.velocity.y, b.velocity.x).normalized();
 			}
 		}
 	}
@@ -211,10 +216,14 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 
 	// 各状態のロジック
 	// EVADE（弾丸回避）
-	if (state == State::Evade) move_with_collision(evade_vec.normalize().x * 180.0 * dt, evade_vec.normalize().y * 180.0 * dt, obstacles);
+	if (state == State::Evade) {
+		move_with_collision(evade_vec.normalize().x * 180.0 * dt, evade_vec.normalize().y * 180.0 * dt, obstacles);
+	}
 
 	// RETREAT（撤退・逃走）
-	else if (state == State::Retreat) move_with_collision((pos - nearest_target->pos).normalize().x * 150.0 * dt, (pos - nearest_target->pos).normalize().y * 150.0 * dt, obstacles);
+	else if (state == State::Retreat) {
+		move_with_collision((pos - nearest_target->pos).normalize().x * 150.0 * dt, (pos - nearest_target->pos).normalize().y * 150.0 * dt, obstacles);
+	}
 
 	// --- ATTACK（攻撃・交戦） ---
 	else if (state == State::Attack) {
@@ -222,7 +231,8 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 		// 射撃
 		shoot_cooldown -= dt;
 		if (shoot_cooldown <= 0.0) {
-			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team, weapon.damage); shoot_cooldown = weapon.fire_rate;
+			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team);
+			shoot_cooldown = weapon.fire_rate;
 		}
 
 		// 移動方法
@@ -278,7 +288,9 @@ void Soldier::update_respawn(const Array<CapturePoint>& capture_points, double d
 	respawn_timer -= dt;
 
 	if (respawn_timer <= 0.0) {
-		dead = false; health = 100.0; state = State::Idle;
+		dead = false;
+		health = 100.0;
+		state = State::Idle;
 
 		// 自チームが支配している（所有している）拠点をリストアップ
 		Array<const CapturePoint*> owned_cps;
