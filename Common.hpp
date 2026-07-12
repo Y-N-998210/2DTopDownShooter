@@ -1,7 +1,6 @@
 ﻿#pragma once
 # include <Siv3D.hpp>
 
-// aiが作成したコード
 // --- 画面・マップ・システム設定 ---
 constexpr int32 SCREEN_WIDTH = 1000;
 constexpr int32 SCREEN_HEIGHT = 700;
