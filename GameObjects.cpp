@@ -54,8 +54,11 @@ void CapturePoint::draw(const Vec2& camera, const Font& font) const {
 }
 
 // --- Bullet ---
-Bullet::Bullet(double x, double y, double angle, Team t) : pos(x, y), team(t) {
+Bullet::Bullet(double x, double y, double angle, Team t, double dmg) : pos(x, y), team(t) {
 	double speed = 720.0;
+	// SRの弾速
+	if (dmg > 50.0) speed = 1200.0;
+
 	// 角度(ラジアン)から方向ベクトルを作成し、速度を決定
 	velocity = Vec2(std::cos(angle), std::sin(angle)) * speed;
 }
@@ -219,7 +222,7 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 		// 射撃
 		shoot_cooldown -= dt;
 		if (shoot_cooldown <= 0.0) {
-			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team); shoot_cooldown = weapon.fire_rate;
+			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team, weapon.damage); shoot_cooldown = weapon.fire_rate;
 		}
 
 		// 移動方法
