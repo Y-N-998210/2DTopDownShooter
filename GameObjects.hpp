@@ -29,8 +29,9 @@ struct Bullet {
 	Vec2 pos;
 	Vec2 velocity;
 	Team team;
+	double damage;
 
-	Bullet(double x, double y, double angle, Team t);
+	Bullet(double x, double y, double angle, Team t, double dmg);
 	void update(double dt);
 	void draw(const Vec2& camera) const;
 };

@@ -15,7 +15,8 @@ void CapturePoint::update(const Array<Soldier*>& all_soldiers, double dt) {
 	int32 blue_cnt = 0, red_cnt = 0;
 	// 範囲内兵士カウント
 	for (auto s : all_soldiers) {
-		if (!s->dead && s->pos.distanceFrom(pos) < radius) {
+		// 生存かつHP>0のみ占領できる
+		if (!s->dead && s->health && s->pos.distanceFrom(pos) < radius) {
 			if (s->team == Team::Blue) blue_cnt++;
 			else if (s->team == Team::Red) red_cnt++;
 		}
@@ -54,8 +55,11 @@ void CapturePoint::draw(const Vec2& camera, const Font& font) const {
 }
 
 // --- Bullet ---
-Bullet::Bullet(double x, double y, double angle, Team t) : pos(x, y), team(t) {
+Bullet::Bullet(double x, double y, double angle, Team t, double dmg) : pos(x, y), team(t), damage(dmg) {
 	double speed = 720.0;
+
+	// SRの弾速速くする
+	if (dmg > 50.0) speed = 1200.0;
 
 	// 角度(ラジアン)から方向ベクトルを作成し、速度を決定
 	velocity = Vec2(std::cos(angle), std::sin(angle)) * speed;
@@ -167,7 +171,7 @@ void Soldier::move_with_collision(double dx, double dy, const Array<Obstacle>& o
 // AIの思考と行動ロジック
 void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, const Array<Soldier*>& allies,
 							 Array<Bullet>& bullets, const Array<Obstacle>& obstacles, const Array<CapturePoint>& capture_points, double dt) {
-	if (is_player || dead) return;
+	if (is_player || dead || health <= 0.0) return;
 
 	// 敵の索敵
 	// 自身のチームに応じ、ターゲットをセット ex)自分が青なら敵は赤
@@ -178,7 +182,7 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 	Soldier* nearest_target = nullptr;
 	double min_dist = 9999.0;
 	for (auto t : targets) {
-		if (t->dead) continue;
+		if (t->dead || t->health <= 0.0) continue;
 		double d = pos.distanceFrom(t->pos);
 		if (d < min_dist && has_line_of_sight(pos, t->pos, obstacles)) { min_dist = d; nearest_target = t; }
 	}
@@ -231,7 +235,7 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 		// 射撃
 		shoot_cooldown -= dt;
 		if (shoot_cooldown <= 0.0) {
-			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team);
+			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team, weapon.damage);
 			shoot_cooldown = weapon.fire_rate;
 		}
 
@@ -307,7 +311,7 @@ void Soldier::update_respawn(const Array<CapturePoint>& capture_points, double d
 	}
 }
 void Soldier::draw(const Vec2& camera, const Font& font) const {
-	if (dead) return;	// 死亡中は描画しない
+	if (dead || health <= 0.0) return;	// 死亡中は描画しない
 	Vec2 draw_pos = pos - camera;
 	// 兵士
 	Circle(draw_pos, 20).draw(color);

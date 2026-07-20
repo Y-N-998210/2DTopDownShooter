@@ -45,9 +45,9 @@ void draw_minimap(const Soldier& player, const Array<Soldier>& allies, const Arr
 	// 各エンティティの描画
 	for (const auto& wall : obstacles) RectF(mx + wall.rect.x * scale, my + wall.rect.y * scale, Max(1.0, wall.rect.w * scale), Max(1.0, wall.rect.h * scale)).draw(Color(90, 50, 20));
 	for (const auto& cp : capture_points) Circle(mx + cp.pos.x * scale, my + cp.pos.y * scale, Max(2.0, cp.radius * scale)).drawFrame(1, 0, (cp.owner == Team::Blue) ? Color(50, 50, 255) : (cp.owner == Team::Red) ? Color(255, 50, 50) : Color(160, 160, 160));
-	for (const auto& a : allies) if (!a.dead) Circle(mx + a.pos.x * scale, my + a.pos.y * scale, 2).draw(Color(100, 100, 255));
-	for (const auto& e : enemies) if (!e.dead) Circle(mx + e.pos.x * scale, my + e.pos.y * scale, 2).draw(Color(255, 50, 50));
-	if (!player.dead) Circle(mx + player.pos.x * scale, my + player.pos.y * scale, 3).draw(Palette::White);
+	for (const auto& a : allies ) if (!a.dead && a.health > 0.0) Circle(mx + a.pos.x * scale, my + a.pos.y * scale, 2).draw(Color(100, 100, 255));
+	for (const auto& e : enemies) if (!e.dead && e.health > 0.0) Circle(mx + e.pos.x * scale, my + e.pos.y * scale, 2).draw(Color(255, 50, 50));
+	if (!player.dead && player.health > 0.0) Circle(mx + player.pos.x * scale, my + player.pos.y * scale, 3).draw(Palette::White);
 }
 
 // --- ゲーム状態のリセット ---
@@ -142,7 +142,7 @@ void Main() {
 		}
 
 	// 3. プレイヤーの移動
-		if (!player.dead && !game_over) {
+		if (!player.dead && player.health > 0.0 && !game_over ) {
 			double dx = 0, dy = 0;
 			if (KeyA.pressed()) dx -= 240.0 * dt;
 			if (KeyD.pressed()) dx += 240.0 * dt;
@@ -169,10 +169,11 @@ void Main() {
 		}
 
 		// 射撃する
-		if (!player.dead && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0) {
+		//if (!player.dead && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0)
+		if (!player.dead && player.health > 0.0 && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0) {
 			Vec2 target_pos = camera + Cursor::Pos();
 			Vec2 dir_vec = target_pos - player.pos;
-			bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(dir_vec.y, dir_vec.x), Team::Blue);
+			bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(dir_vec.y, dir_vec.x), Team::Blue, player.weapon.damage);
 			player.shoot_cooldown = player.weapon.fire_rate;
 		}
 
@@ -208,38 +209,38 @@ void Main() {
 			// 死亡してればリスポーンタイマーの進捗
 			a.update_respawn(capture_points, dt);
 			// 生存してれば思考と行動
-			if (!a.dead && !game_over) {
+			if (!a.dead && a.health > 0.0 && !game_over) {
 				a.think_and_move(&player, ptr_enemies, Array<Soldier*>(), bullets, obstacles, capture_points, dt);
 			}
 			// 死亡時の処理
-			if (a.health <= 0 && !a.dead) {
-				a.dead = true;
-				a.respawn_timer = 3.0;
-				tickets[Team::Blue] = Max(0, tickets[Team::Blue] - 1);
-			}
+			//if (a.health <= 0 && !a.dead) {
+			//	a.dead = true;
+			//	a.respawn_timer = 3.0;
+			//	tickets[Team::Blue] = Max(0, tickets[Team::Blue] - 1);
+			//}
 		}
 		// 敵AI更新
 		for (auto& e : enemies) {
 			// 死亡してればリスポーンタイマーの進捗
 			e.update_respawn(capture_points, dt);
 			// 生存してれば思考と行動(敵は第3引数に味方ポインタのリスト渡す)
-			if (!e.dead && !game_over) {
+			if (!e.dead && e.health > 0.0 && !game_over) {
 				e.think_and_move(&player, Array<Soldier*>(), ptr_allies, bullets, obstacles, capture_points, dt);
 			}
 			// 死亡時の処理
-			if (e.health <= 0 && !e.dead) {
-				e.dead = true;
-				e.respawn_timer = 3.0;
-				tickets[Team::Red] = Max(0, tickets[Team::Red] - 1);
-			}
+			//if (e.health <= 0 && !e.dead) {
+			//	e.dead = true;
+			//	e.respawn_timer = 3.0;
+			//	tickets[Team::Red] = Max(0, tickets[Team::Red] - 1);
+			//}
 		}
 
-		// プレイヤーの死亡・リスポーン処理
-		if (player.health <= 0 && !player.dead) {
-			player.dead = true;
-			player.respawn_timer = 3.0;
-			tickets[Team::Blue] = Max(0, tickets[Team::Blue] - 1);
-		}
+		// プレイヤーのリスポーン処理
+		//if (player.health <= 0 && !player.dead) {
+		//	player.dead = true;
+		//	player.respawn_timer = 3.0;
+		//	tickets[Team::Blue] = Max(0, tickets[Team::Blue] - 1);
+		//}
 		player.update_respawn(capture_points, dt);
 
 	// 6. 弾丸の更新&衝突判定
@@ -269,8 +270,17 @@ void Main() {
 				// 兵士との衝突判定
 				bool hit_soldier = false;
 				for (auto target : all_soldiers) {
-					if (!target->dead && it->team != target->team && it->pos.distanceFrom(target->pos) < 20.0) {
-						target->health -= 15.0;
+					if (!target->dead && target-> health > 0.0 && it->team != target->team && it->pos.distanceFrom(target->pos) < 20.0) {
+						target->health -= it->damage;
+
+						// ダメージを受けた時点でHP<=0なら即死
+						if (target->health <= 0.0) {
+							target->health = 0.0;
+							target->dead = true;
+							target->respawn_timer = 5.0;
+							tickets[target->team] = Max(0, tickets[target->team] - 1);
+						}
+
 						hit_soldier = true;
 						break;
 					}
