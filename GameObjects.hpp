@@ -36,6 +36,23 @@ struct Bullet {
 	void draw(const Vec2& camera) const;
 };
 
+// --- グレネード構造体 ---
+struct Grenade {
+	Vec2 pos;
+	Vec2 target_pos;
+	Vec2 velocity;
+	Team team;
+	double timer = 0.0;
+	double max_time = 0.8; // 爆発まで
+	bool exploded = false;
+	double explode_radius = 90.0;	// 爆発範囲
+	double damage = 50.0;	// 爆発ダメージ
+
+	Grenade(double x, double y, const Vec2& target, Team t);
+	void update(double dt, Array<Soldier*>& all_soldiers, Soldier* player);
+	void draw(const Vec2& camera) const;
+};
+
 // --- 視線判定関数 ---
 // pos1-pos2上で障害物チェック(Trueで視界通る)
 bool has_line_of_sight(const Vec2& pos1, const Vec2& pos2, const Array<Obstacle>& obstacles);
@@ -49,6 +66,7 @@ struct Soldier {
 	double flank_sign = 1.0;	// 左:-1, 右:1
 	double health = 100.0;
 	double shoot_cooldown = 0.0;
+	double grenade_cooldown = 0.0;
 	bool is_player = false;
 	State state = State::Idle;
 	bool dead = false;
@@ -62,7 +80,7 @@ struct Soldier {
 	void move_with_collision(double dx, double dy, const Array<Obstacle>& obstacles);
 	// 思考と行動
 	void think_and_move(Soldier* player, const Array<Soldier*>& enemies, const Array<Soldier*>& allies,
-						Array<Bullet>& bullets, const Array<Obstacle>& obstacles, const Array<CapturePoint>& capture_points, double dt);
+						Array<Bullet>& bullets, Array<Grenade>& grenades, const Array<Obstacle>& obstacles, const Array<CapturePoint>& capture_points, double dt);
 	// 復活までのカウントダウンと、復活時の位置決定処理
 	void update_respawn(const Array<CapturePoint>& capture_points, double dt);
 	// 兵士の円、兵科、HPバー描画

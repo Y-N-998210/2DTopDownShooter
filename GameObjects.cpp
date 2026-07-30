@@ -167,11 +167,73 @@ void Soldier::move_with_collision(double dx, double dy, const Array<Obstacle>& o
 	pos.y = Clamp<double>(pos.y, 20, MAP_HEIGHT - 20);
 }
 
+// --- グレネード実装 ---
+Grenade::Grenade(double x, double y, const Vec2& target, Team t) :pos(x, y), target_pos(target), team(t) {
+
+	// 目標地点へ飛んでいく速度ベクトル
+	Vec2 dir = (target_pos - pos);
+	double dist = dir.length();
+	if (dist > 400.0) { // 最大投擲距離は400px
+		dir = dir.normalize() * 400.0;
+		target_pos = pos + dir;
+	}
+	velocity = dir / max_time;
+}
+
+void Grenade::update(double dt, Array<Soldier*>& all_soldiers, Soldier* player) {
+	if (exploded) {
+		return;
+	}
+
+	timer += dt;
+	pos += velocity * dt;
+
+	// 一定時間後に起爆
+	if (timer >= max_time) {
+		exploded = true;
+
+		// 範囲内のキャラにダメージ
+		for (auto s : all_soldiers) {
+			if (!s->dead && s->team != team && pos.distanceFrom(s->pos) <= explode_radius) {
+				s->health -= damage;
+				if (s->health <= 0.0) {
+					s->dead = true;
+					s->respawn_timer = 5.0;
+				}
+			}
+		}
+		if (player && !player->dead && player->team != team && pos.distanceFrom(player->pos) <= explode_radius) {
+			player->health -= damage;
+			if (player->health <= 0.0) {
+				player->dead = true;
+				player->respawn_timer = 5.0;
+			}
+		}
+	}
+}
+
+void Grenade::draw(const Vec2& camera) const {
+	Vec2 draw_pos = pos - camera;
+	if (!exploded) {
+		// 投擲中
+		Circle(draw_pos, 5).draw(Palette::Black);
+		Circle(draw_pos, 6).drawFrame(1, 0, Palette::Darkgray);
+	}
+	else {
+		// 爆発
+		Circle(draw_pos, explode_radius).draw(Color(255, 100, 0, 120));
+		Circle(draw_pos, explode_radius * 0.6).draw(Color(255, 220, 0, 180));
+	}
+}
+
 
 // AIの思考と行動ロジック
 void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, const Array<Soldier*>& allies,
-							 Array<Bullet>& bullets, const Array<Obstacle>& obstacles, const Array<CapturePoint>& capture_points, double dt) {
+							 Array<Bullet>& bullets, Array<Grenade>& grenades,  const Array<Obstacle>& obstacles, const Array<CapturePoint>& capture_points, double dt) {
 	if (is_player || dead || health <= 0.0) return;
+	if (grenade_cooldown > 0.0) {
+		grenade_cooldown -= dt;
+	}
 
 	// 敵の索敵
 	// 自身のチームに応じ、ターゲットをセット ex)自分が青なら敵は赤
@@ -232,6 +294,13 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 	// --- ATTACK（攻撃・交戦） ---
 	else if (state == State::Attack) {
 		Vec2 dir_vec = (nearest_target->pos - pos);
+
+		// 投擲判定:敵が交戦域かつグレのクールダウン終了で確率でなげる
+		if (grenade_cooldown <= 0.0 && RandomBool(0.02)) {	// 2%で投げる
+			grenades.emplace_back(pos.x, pos.y, nearest_target->pos, team);
+			grenade_cooldown = 10.0;
+		}
+
 		// 射撃
 		shoot_cooldown -= dt;
 		if (shoot_cooldown <= 0.0) {

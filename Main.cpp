@@ -83,6 +83,7 @@ void Main() {
 	Array<Soldier> allies;
 	Array<Soldier> enemies;
 	Array<Bullet> bullets;
+	Array<Grenade> grenades;
 	HashTable<Team, int32> tickets;
 
 	// マップ・障害物・拠点の配置、プレイヤー/AIの初期配置、初期チケットの設定
@@ -90,12 +91,17 @@ void Main() {
 	double ticket_decay_timer = 0.0;
 	bool game_over = false;
 	Team winner = Team::None;
+	double player_grenade_cd = 0.0;
 
 	// 1フレームの始まり
 	while (System::Update()) {
 	// 1.入力の受付 & 特殊処理(Input & Global State)
 		// カメラ位置
-		const double dt = Scene::DeltaTime();
+		double dt = Scene::DeltaTime();
+		if (dt > 0.1) dt = 0.1;
+		if (player_grenade_cd > 0.0) {
+			player_grenade_cd -= dt;
+		}
 		Vec2 camera(Clamp<double>(player.pos.x - SCREEN_WIDTH / 2.0, 0.0, MAP_WIDTH - SCREEN_WIDTH), Clamp<double>(player.pos.y - SCREEN_HEIGHT / 2.0, 0.0, MAP_HEIGHT - SCREEN_HEIGHT));
 
 		// プレイヤー射撃(元)
@@ -148,6 +154,11 @@ void Main() {
 			if (KeyD.pressed()) dx += 240.0 * dt;
 			if (KeyW.pressed()) dy -= 240.0 * dt;
 			if (KeyS.pressed()) dy += 240.0 * dt;
+			if (KeyG.down() && player_grenade_cd <= 0.0 && !player.dead) {
+				Vec2 target_pos = camera + Cursor::Pos();
+				grenades.emplace_back(player.pos.x, player.pos.y, target_pos, Team::Blue);
+				player_grenade_cd = 6.0; // プレイヤーのクールダウン6秒
+			}
 			// 障害物、マップ端の衝突判定
 			if (dx != 0 || dy != 0) player.move_with_collision(dx, dy, obstacles);	 
 		}
@@ -181,6 +192,8 @@ void Main() {
 		// 全兵士を管理するポインタ配列作成
 		Array<Soldier*> all_soldiers;
 		all_soldiers.push_back(&player);
+
+
 		for (auto& a : allies) {
 			all_soldiers.push_back(&a);
 		}
@@ -210,7 +223,7 @@ void Main() {
 			a.update_respawn(capture_points, dt);
 			// 生存してれば思考と行動
 			if (!a.dead && a.health > 0.0 && !game_over) {
-				a.think_and_move(&player, ptr_enemies, Array<Soldier*>(), bullets, obstacles, capture_points, dt);
+				a.think_and_move(&player, ptr_enemies, Array<Soldier*>(), bullets, grenades, obstacles, capture_points, dt);
 			}
 			// 死亡時の処理
 			//if (a.health <= 0 && !a.dead) {
@@ -225,7 +238,7 @@ void Main() {
 			e.update_respawn(capture_points, dt);
 			// 生存してれば思考と行動(敵は第3引数に味方ポインタのリスト渡す)
 			if (!e.dead && e.health > 0.0 && !game_over) {
-				e.think_and_move(&player, Array<Soldier*>(), ptr_allies, bullets, obstacles, capture_points, dt);
+				e.think_and_move(&player, Array<Soldier*>(), ptr_allies, bullets, grenades, obstacles, capture_points, dt);
 			}
 			// 死亡時の処理
 			//if (e.health <= 0 && !e.dead) {
@@ -242,6 +255,17 @@ void Main() {
 		//	tickets[Team::Blue] = Max(0, tickets[Team::Blue] - 1);
 		//}
 		player.update_respawn(capture_points, dt);
+
+		// グレの更新と消去
+		for (auto it = grenades.begin(); it != grenades.end();) {
+			it->update(dt, all_soldiers, &player);
+			if (it->exploded && it->timer >= it->max_time + 0.2) { // 爆発消去
+				it = grenades.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
 
 	// 6. 弾丸の更新&衝突判定
 		if (!game_over) {
@@ -326,6 +350,9 @@ void Main() {
 		}
 		for (const auto& b : bullets) {
 			b.draw(camera);
+		}
+		for (const auto& g : grenades) {
+			g.draw(camera);
 		}
 
 		// HUD, ミニマップ描画(カメラの影響受けない最前面固定レイヤー)
