@@ -181,15 +181,15 @@ Grenade::Grenade(double x, double y, const Vec2& target, Team t) :pos(x, y), tar
 }
 
 void Grenade::update(double dt, Array<Soldier*>& all_soldiers, Soldier* player) {
-	if (exploded) {
-		return;
+	timer += dt;
+
+	// 飛んでいるときのみ移動
+	if (!exploded) {
+		pos += velocity * dt;
 	}
 
-	timer += dt;
-	pos += velocity * dt;
-
 	// 一定時間後に起爆
-	if (timer >= max_time) {
+	if (!exploded && timer >= max_time) {
 		exploded = true;
 
 		// 範囲内のキャラにダメージ

@@ -259,7 +259,7 @@ void Main() {
 		// グレの更新と消去
 		for (auto it = grenades.begin(); it != grenades.end();) {
 			it->update(dt, all_soldiers, &player);
-			if (it->exploded && it->timer >= it->max_time + 0.2) { // 爆発消去
+			if (it->timer >= (it->max_time + 0.25)) { // 爆発消去
 				it = grenades.erase(it);
 			}
 			else {
