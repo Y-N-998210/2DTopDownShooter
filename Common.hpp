@@ -33,14 +33,29 @@ struct Weapon {
 	double fire_rate;
 	double damage;
 
+	// 弾丸とリロード設定
+	int32 magazine_size;	// マガジン容量
+	int32 ammo;				// 現在のマガジン残弾
+	int32 reserve_ammo;		// 予備弾数
+	double reload_time;		// リロードにかかる時間(s)
+
 	static Weapon Create(WeaponType type) {
 		switch (type) {
-		case WeaponType::AR: return { type, U"AR", 400.0, 0.2, 12.0 };
-		case WeaponType::SMG: return { type, U"SMG", 250.0, 0.1, 8.0 };
-		case WeaponType::SG: return { type, U"SG", 150.0, 0.8, 35.0 };
-		case WeaponType::SR: return { type, U"SR", 700.0, 1.5, 60.0 };
-		default:			return { type, U"AR", 400.0, 0.2, 12.0 };
+		case WeaponType::AR: return { type, U"AR", 400.0, 0.2, 12.0, 30, 30, 120, 2.0 };
+		case WeaponType::SMG: return { type, U"SMG", 250.0, 0.1, 8.0, 25, 25, 150, 1.5 };
+		case WeaponType::SG: return { type, U"SG", 150.0, 0.8, 35.0, 8, 8, 32, 2.5 };
+		case WeaponType::SR: return { type, U"SR", 700.0, 1.5, 60.0, 5, 5, 20, 3.0 };
+		default:			return { type, U"AR", 400.0, 0.2, 12.0, 30, 30, 120, 2.0 };
 		}
+	}
+
+	// リロード処理メソッド
+	void reload() {
+		if (reserve_ammo <= 0 || ammo == magazine_size) return;	// 予備弾数0とフル装填のときはそのまま返す
+		int32 needed = magazine_size - ammo;
+		int32 amount = Min(needed, reserve_ammo);
+		ammo += amount;
+		reserve_ammo -= amount;
 	}
 };
 

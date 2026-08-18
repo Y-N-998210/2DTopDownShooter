@@ -70,7 +70,8 @@ struct Soldier {
 	bool is_player = false;
 	State state = State::Idle;
 	bool dead = false;
-	double respawn_timer = 0.0;
+	double respawn_timer = 0.0;		// 復活時間
+	double reload_timer = 0.0;		// リロードタイマー(>0ならリロード中)
 	Color color;
 
 	// コンストラクタ

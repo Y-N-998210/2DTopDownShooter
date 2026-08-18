@@ -235,6 +235,21 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 		grenade_cooldown -= dt;
 	}
 
+	// リロードタイマーの更新
+	if (reload_timer > 0.0) {
+		reload_timer -= dt;
+		if (reload_timer <= 0.0) {	// 0sになった瞬間に弾の入れ替えを行う
+			weapon.reload();	// リロード完了
+		}
+		return;	// リロード中は移動・射撃等の行動を中断(または移動だけ許容)
+	}
+	// 弾切れで予備があれば自動でリロード開始
+	if (weapon.ammo <= 0 && weapon.reserve_ammo > 0) {
+		reload_timer = weapon.reload_time;
+		return;
+	}
+	
+
 	// 敵の索敵
 	// 自身のチームに応じ、ターゲットをセット ex)自分が青なら敵は赤
 	Array<Soldier*> targets = (team == Team::Blue) ? enemies : allies;
@@ -303,9 +318,10 @@ void Soldier::think_and_move(Soldier* player, const Array<Soldier*>& enemies, co
 
 		// 射撃
 		shoot_cooldown -= dt;
-		if (shoot_cooldown <= 0.0) {
+		if (shoot_cooldown <= 0.0 && weapon.ammo > 0) {
 			bullets.emplace_back(pos.x, pos.y, std::atan2(dir_vec.y, dir_vec.x), team, weapon.damage);
 			shoot_cooldown = weapon.fire_rate;
+			weapon.ammo--;	// 1発消費
 		}
 
 		// 移動方法

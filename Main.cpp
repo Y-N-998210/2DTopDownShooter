@@ -179,13 +179,34 @@ void Main() {
 			wants_to_shoot = MouseL.down();
 		}
 
+		// プレイヤーのリロード処理
+		if (player.reload_timer > 0.0) {
+			player.reload_timer -= dt;
+			if (player.reload_timer <= 0.0) {
+				player.weapon.reload();
+			}
+		}
+
+		// Rキーで手動リロード
+		if (KeyR.down() && player.reload_timer <= 0.0 && player.weapon.ammo < player.weapon.magazine_size && player.weapon.reserve_ammo > 0) {
+			player.reload_timer = player.weapon.reload_time;
+		}
+
 		// 射撃する
 		//if (!player.dead && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0)
 		if (!player.dead && player.health > 0.0 && !game_over && wants_to_shoot && player.shoot_cooldown <= 0.0) {
-			Vec2 target_pos = camera + Cursor::Pos();
-			Vec2 dir_vec = target_pos - player.pos;
-			bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(dir_vec.y, dir_vec.x), Team::Blue, player.weapon.damage);
-			player.shoot_cooldown = player.weapon.fire_rate;
+			// リロード中でなく、残弾ありのとき
+			if (player.reload_timer <= 0.0 && player.weapon.ammo > 0) {
+				Vec2 target_pos = camera + Cursor::Pos();
+				Vec2 dir_vec = target_pos - player.pos;
+				bullets.emplace_back(player.pos.x, player.pos.y, std::atan2(dir_vec.y, dir_vec.x), Team::Blue, player.weapon.damage);
+				player.shoot_cooldown = player.weapon.fire_rate;
+				player.weapon.ammo--;	// 一発消費
+			}
+			// 弾切れの場合自動リロード
+			else if (player.reload_timer <= 0.0 && player.weapon.ammo == 0 && player.weapon.reserve_ammo > 0) {
+				player.reload_timer = player.weapon.reload_time;
+			}
 		}
 
 	// 4. 拠点の更新
@@ -358,5 +379,11 @@ void Main() {
 		// HUD, ミニマップ描画(カメラの影響受けない最前面固定レイヤー)
 		draw_hud(tickets, capture_points, game_over, winner, fontHUD, fontCPHUD, fontWin, fontSub);
 		draw_minimap(player, allies, enemies, obstacles, capture_points);
+
+		// 右下に残弾/予備弾数を表示
+		String ammo_text = (player.reload_timer > 0.0)
+			? U"RELOADING..."
+			: U"AMMO: {} / {}"_fmt(player.weapon.ammo, player.weapon.reserve_ammo);
+		fontHUD(ammo_text).draw(SCREEN_WIDTH - 250, SCREEN_HEIGHT - 50, (player.weapon.ammo == 0) ? Palette::Red : Palette::White);
 	}
 }
