@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/ソリューション項目/">
+    <File Path="README.md" />
+    <File Path="TODO.md" />
+  </Folder>
+  <Project Path="2DTopDownShooter.vcxproj" Id="51802d62-d998-49ca-b76a-fdf02c2f51b8" />
+</Solution>
