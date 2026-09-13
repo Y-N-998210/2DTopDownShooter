@@ -364,3 +364,9 @@ FodyWeavers.xsd
 
 # 追加
 *.exe
+
+# OpenSiv3D 中間生成フォルダ
+Intermediate/
+
+# OpenSiv3D ビルド済デバッグ実行ファイル
+App/*.exe
