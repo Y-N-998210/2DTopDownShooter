@@ -23,7 +23,7 @@ enum class State { Idle, Evade, Retreat, Attack, Capture };
 // --- AIのrole ---
 enum class Role { Player, Assault, Defender, Support, Flanker};
 // --- 武器 ---
-enum class WeaponType { AR, SMG, SG, SR};
+enum class WeaponType { AR, SMG, SG, SR, LMG};
 
 // 武器パラメータ
 struct Weapon {
@@ -45,6 +45,7 @@ struct Weapon {
 		case WeaponType::SMG: return { type, U"SMG", 250.0, 0.1, 8.0, 25, 25, 150, 1.5 };
 		case WeaponType::SG: return { type, U"SG", 150.0, 0.8, 35.0, 8, 8, 32, 2.5 };
 		case WeaponType::SR: return { type, U"SR", 700.0, 1.5, 60.0, 5, 5, 20, 3.0 };
+		case WeaponType::LMG: return { type, U"LMG", 450.0, 0.08, 10.0, 100, 100, 200, 4.5 };
 		default:			return { type, U"AR", 400.0, 0.2, 12.0, 30, 30, 120, 2.0 };
 		}
 	}

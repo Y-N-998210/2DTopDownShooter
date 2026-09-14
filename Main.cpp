@@ -171,7 +171,7 @@ void Main() {
 		// セミ・フル切り替え
 		bool wants_to_shoot = false;
 		// フル
-		if (player.weapon.type == WeaponType::AR || player.weapon.type == WeaponType::SMG) {
+		if (player.weapon.type == WeaponType::AR || player.weapon.type == WeaponType::SMG || player.weapon.type == WeaponType::LMG) {
 			wants_to_shoot = MouseL.pressed();
 		}
 		// セミ

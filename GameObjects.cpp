@@ -112,7 +112,7 @@ Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), 
 	if (is_player) {
 		color = COLOR_PLAYER;
 		role = Role::Player;
-		weapon = Weapon::Create(WeaponType::SMG);
+		weapon = Weapon::Create(WeaponType::LMG);	// プレイヤーの武器はここで変更
 	}
 	else {
 		color = (team == Team::Blue) ? COLOR_ALLY : COLOR_ENEMY;
@@ -126,13 +126,20 @@ Soldier::Soldier(double x, double y, Team t, bool player) : pos(x, y), team(t), 
 
 		// 役割ごとの武器
 		if (role == Role::Assault) {
-			weapon = Weapon::Create(RandomBool() ? WeaponType::AR : WeaponType::SMG);
-		} else if (role == Role::Flanker) {
-			weapon = Weapon::Create(RandomBool() ? WeaponType::SMG : WeaponType::SG); 
-		} else if (role == Role::Support) {
-			weapon = Weapon::Create(WeaponType::SR); 
-		} else {
-			weapon = Weapon::Create(WeaponType::AR);
+			// ASSAULT: 突撃用の AR または 高威力の SG
+			weapon = Weapon::Create(RandomBool() ? WeaponType::AR : WeaponType::SG);
+		}
+		else if (role == Role::Support) {
+			// SUPPORT: 火力支援の LMG または 狙撃の SR
+			weapon = Weapon::Create(RandomBool() ? WeaponType::LMG : WeaponType::SR);
+		}
+		else if (role == Role::Flanker) {
+			// FLANKER: 機動性の高い SMG
+			weapon = Weapon::Create(WeaponType::SMG);
+		}
+		else if (role == Role::Defender) {
+			// DEFENDER: 拠点保持のための AR または 面制圧の LMG
+			weapon = Weapon::Create(RandomBool() ? WeaponType::AR : WeaponType::LMG);
 		}
 
 		// Flankerの周り方向決定
